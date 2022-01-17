@@ -10,13 +10,17 @@ from matplotlib_backend_qtquick.backend_qtquick import (
     NavigationToolbar2QtQuick)
 from matplotlib_backend_qtquick.backend_qtquickagg import (
     FigureCanvasQtQuickAgg)
-from matplotlib_backend_qtquick.qt_compat import QtGui, QtQml, QtCore
 
+from PySide2.QtGui import QGuiApplication,  QIcon, QImage, QScreen
+from PySide2.QtQml import qmlRegisterType, QQmlApplicationEngine, QQmlImageProviderBase
+from PySide2.QtQuick import QQuickWindow, QQuickImageProvider
 
-class DisplayBridge(QtCore.QObject):
+from PySide2.QtCore import QUrl, QSize, QThread, Qt, QDir, QObject, QCoreApplication,  Signal, Property, Slot
+
+class DisplayBridge(QObject):
     """ A bridge class to interact with the plot in python
     """
-    coordinatesChanged = QtCore.Signal(str)
+    coordinatesChanged = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -56,29 +60,29 @@ class DisplayBridge(QtCore.QObject):
         self._coordinates = coordinates
         self.coordinatesChanged.emit(self._coordinates)
     
-    coordinates = QtCore.Property(str, getCoordinates, setCoordinates,
+    coordinates = Property(str, getCoordinates, setCoordinates,
                                   notify=coordinatesChanged)
 
     # The toolbar commands
-    @QtCore.Slot()
+    @Slot()
     def pan(self, *args):
         """Activate the pan tool."""
         self.toolbar.pan(*args)
 
-    @QtCore.Slot()
+    @Slot()
     def zoom(self, *args):
         """activate zoom tool."""
         self.toolbar.zoom(*args)
 
-    @QtCore.Slot()
+    @Slot()
     def home(self, *args):
         self.toolbar.home(*args)
 
-    @QtCore.Slot()
+    @Slot()
     def back(self, *args):
         self.toolbar.back(*args)
 
-    @QtCore.Slot()
+    @Slot()
     def forward(self, *args):
         self.toolbar.forward(*args)
 
@@ -90,9 +94,9 @@ class DisplayBridge(QtCore.QObject):
             self.coordinates = f"({event.xdata:.2f}, {event.ydata:.2f})"
 
 if __name__ == "__main__":
-    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-    app = QtGui.QGuiApplication(sys.argv)
-    engine = QtQml.QQmlApplicationEngine()
+    QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    app = QGuiApplication([])
+    engine = QQmlApplicationEngine()
 
     # instantate the display bridge
     displayBridge = DisplayBridge()
@@ -102,14 +106,14 @@ if __name__ == "__main__":
     context.setContextProperty("displayBridge", displayBridge)
 
     # matplotlib stuff
-    QtQml.qmlRegisterType(FigureCanvasQtQuickAgg, "Backend", 1, 0, "FigureCanvas")
+    qmlRegisterType(FigureCanvasQtQuickAgg, "Backend", 1, 0, "FigureCanvas")
 
     # Load the QML file
     qmlFile = Path(Path.cwd(), Path(__file__).parent, "main.qml")
-    engine.load(QtCore.QUrl.fromLocalFile(str(qmlFile)))
+    engine.load(QUrl.fromLocalFile(str(qmlFile)))
 
     win = engine.rootObjects()[0]
-    displayBridge.updateWithCanvas(win.findChild(QtCore.QObject, "figure"))
+    displayBridge.updateWithCanvas(win.findChild(QObject, "figure"))
 
     # execute and cleanup
     app.exec_()
